@@ -3,8 +3,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <iomanip>
 
 #include "linux_parser.h"
+#include "format.h"
 
 using std::stof;
 using std::string;
@@ -68,10 +71,49 @@ vector<int> LinuxParser::Pids() {
 }
 
 // TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+float LinuxParser::MemoryUtilization() {
+    string line;
+    string attribute;
+    string value;
+    float memTotal,memFree, buffers,memUtil;
+    std::ifstream stream(kProcDirectory+ kMeminfoFilename);
+    if(stream.is_open()) {
+        while (std::getline(stream, line)) {
+            std::istringstream linestream(line);
+            linestream >> attribute >> value;
+           // std::cout<<attribute <<value<<std::endl;
+            if (attribute == "MemTotal:") {
+                // std::cout<<value<<std::endl;
+                memTotal = stof(value);
+                //std::cout << memTotal << std::endl;
+            } else if (attribute == "MemFree:") {
+                memFree = stof(value);
+                //std::cout  << std::fixed<<std::setprecision(0)<<memFree << std::endl;
+            }
+            else if(attribute=="Buffers:"){
+                buffers= stof(value);
+              //  std::cout << std::fixed<<std::setprecision(0)<<buffers << std::endl;
+            }
+
+        }
+    }
+    memUtil= 1-memFree /(memTotal-buffers);
+    return memUtil;
+}
 
 // TODO: Read and return the system uptime
-long LinuxParser::UpTime() { return 0; }
+long LinuxParser::UpTime() {
+    string line;
+    long upTime, idleTime;
+    std::ifstream stream(kProcDirectory+ kUptimeFilename);
+    if (stream.is_open()) {
+        std::getline(stream, line);
+        std::istringstream linestream(line);
+        linestream>> upTime >>idleTime;
+    }
+   // std::string strUpTime = Format::ElapsedTime(upTime);
+    return upTime;
+}
 
 // TODO: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
@@ -87,7 +129,9 @@ long LinuxParser::ActiveJiffies() { return 0; }
 long LinuxParser::IdleJiffies() { return 0; }
 
 // TODO: Read and return CPU utilization
-vector<string> LinuxParser::CpuUtilization() { return {}; }
+vector<string> LinuxParser::CpuUtilization() {
+    return {};
+}
 
 // TODO: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { return 0; }
