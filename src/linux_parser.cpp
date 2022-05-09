@@ -116,21 +116,71 @@ long LinuxParser::UpTime() {
 }
 
 // TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+long LinuxParser::Jiffies() {
+    long jiffies = UpTime()* sysconf(_SC_CLK_TCK);
+    return jiffies;
+}
 
-// TODO: Read and return the number of active jiffies for a PID
+// TODO:DONE Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
+long LinuxParser::ActiveJiffies(int pid) {
+    long activejiffies = 0;
+    string line;
+    string attribute;
+    vector<string> values;
+    std::ifstream stream(kProcDirectory+ to_string(pid) +kStatFilename);
+    if(stream.is_open()){
+        std::getline(stream, line);
+        std::istringstream linestream(line);
+        while(linestream>> attribute){
+            values.push_back(attribute);
+        }
+        activejiffies = stol(values[13]) + stol(values[14]) + stol(values[15]) +stol(values[16]);
+    }
+    return activejiffies;
+}
 
-// TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
+// TODO:DONE Read and return the number of active jiffies for the system
+long LinuxParser::ActiveJiffies() {
+    long activejiffies=0;
+    vector<string> values=CpuUtilization();
+
+    activejiffies = stol(values[CPUStates::kUser_])+ stol(values[CPUStates::kNice_]) +stol(values[CPUStates::kSystem_])+
+            stol(values[CPUStates::kIRQ_])+stol(values[CPUStates::kSoftIRQ_])+stol(values[CPUStates::kSteal_])+stol(values[CPUStates::kGuest_])
+            +stol(values[CPUStates::kGuestNice_]);
+
+    return activejiffies;
+
+}
 
 // TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+long LinuxParser::IdleJiffies() {
+    long idlejiffies=0;
+    vector<string> values=CpuUtilization();
+    idlejiffies = stol (values[CPUStates::kIdle_]) + stol(values[CPUStates::kIOwait_]);
+
+    return idlejiffies;
+}
 
 // TODO: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() {
-    return {};
+    string line;
+    string attribute;
+    vector<string> values;
+    std::ifstream stream(kProcDirectory + kStatFilename);
+    if(stream.is_open()){
+        while(std::getline(stream,line)){
+            std::istringstream linestream(line);
+         while(linestream>> attribute){
+             if(attribute == "cpu"){
+                 while(linestream>>attribute)
+                     values.push_back(attribute);
+                 return values;
+             }
+         }
+        }
+    }
+    return values;
 }
 
 // TODO:DONE Read and return the total number of processes
@@ -178,7 +228,19 @@ int LinuxParser::RunningProcesses() {
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
+string LinuxParser::Command(int pid) {
+    string cmd;
+    string line;
+    std::ifstream stream(kProcDirectory+ to_string(pid)+ kCmdlineFilename);
+    if(stream.is_open()){
+        std::getline(stream, line);
+        std::istringstream linestream(line);
+        linestream>>cmd;
+        //std::cout<<"cmd line = "<<cmd<<std::endl;
+        return cmd;
+    }
+    return "";
+}
 
 // TODO: Read and return the memory used by a process
 // REMOVE: [[maybe_unused]] once you define the function
